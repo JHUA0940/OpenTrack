@@ -21,7 +21,6 @@ export default function AiAnalysisPage({ userId }) {
   const [shareablePrompt, setShareablePrompt] = useState('')
   const [promptStatus, setPromptStatus] = useState('idle')
   const [pendingQuestion, setPendingQuestion] = useState('')
-  const [bootstrappedSnapshotId, setBootstrappedSnapshotId] = useState(null)
   const threadRef = useRef(null)
   const promptStatusTimerRef = useRef(null)
 
@@ -54,7 +53,6 @@ export default function AiAnalysisPage({ userId }) {
     setShareablePrompt('')
     setPromptStatus('idle')
     setPendingQuestion('')
-    setBootstrappedSnapshotId(null)
 
     if (promptStatusTimerRef.current) {
       window.clearTimeout(promptStatusTimerRef.current)
@@ -70,14 +68,6 @@ export default function AiAnalysisPage({ userId }) {
     },
     []
   )
-
-  useEffect(() => {
-    if (!snapshot?.id || !userId || bootstrappedSnapshotId === snapshot.id) return
-    if (chatMutation.isPending) return
-
-    setBootstrappedSnapshotId(snapshot.id)
-    submitQuestion('')
-  }, [bootstrappedSnapshotId, chatMutation.isPending, snapshot?.id, userId])
 
   useEffect(() => {
     if (!threadRef.current) return
@@ -182,8 +172,8 @@ export default function AiAnalysisPage({ userId }) {
           <p className="eyebrow mb-2">AI Analysis</p>
           <h2 className="section-title">Ollama review of your latest holdings</h2>
           <p className="body-muted mt-2 max-w-2xl">
-            Start with an automatic portfolio read, then keep asking follow-up
-            questions against the same current snapshot.
+            Ask anything about your latest holdings — concentration, risks, or
+            what stands out. All answers are grounded in the current snapshot.
           </p>
         </div>
 
@@ -380,9 +370,7 @@ export default function AiAnalysisPage({ userId }) {
                 <div className="chat-avatar">AI</div>
                 <div className="chat-bubble chat-bubble-assistant">
                   <p className="text-sm leading-6 text-slate-500">
-                    {pendingQuestion
-                      ? 'Working through that follow-up against the current holdings.'
-                      : 'Reviewing the latest holdings and preparing an overview.'}
+                    Working through your question against the current holdings…
                   </p>
                 </div>
               </article>
@@ -390,11 +378,11 @@ export default function AiAnalysisPage({ userId }) {
 
             {!messages.length && !chatMutation.isPending ? (
               <div className="empty-state min-h-[18rem]">
-                <p className="eyebrow mb-2">Conversation</p>
-                <h3 className="section-title">No analysis yet</h3>
+                <p className="eyebrow mb-2">Ready</p>
+                <h3 className="section-title">Ask your first question</h3>
                 <p className="body-muted mt-3 max-w-md">
-                  Generate the first AI review, then ask follow-up questions about
-                  concentration, overlap, or risks.
+                  Type a question below, or pick one of the suggested prompts on
+                  the left. The AI will answer based on the current snapshot only.
                 </p>
               </div>
             ) : null}
