@@ -59,24 +59,31 @@ def return_history(
         .subquery()
     )
 
-    all_rows = (
+    base_q = (
         db.query(PortfolioSnapshot, pnl_subq.c.total_pnl, pnl_subq.c.pnl_count)
         .outerjoin(pnl_subq, PortfolioSnapshot.id == pnl_subq.c.snapshot_id)
         .filter(PortfolioSnapshot.user_id == user_id, PortfolioSnapshot.is_confirmed.is_(True))
         .order_by(PortfolioSnapshot.snapshot_date)
-        .all()
     )
 
+    # Load the very first snapshot separately so the fallback % calculation
+    # always has a stable base, even when a period filter is applied.
+    first_row = base_q.first()
+    if not first_row:
+        return []
+
+    # Apply the period filter at the database level (not Python) to avoid
+    # fetching the full history on every request.
+    since = _date_filter(period)
+    if since:
+        base_q = base_q.filter(PortfolioSnapshot.snapshot_date >= since)
+
+    all_rows = base_q.all()
     if not all_rows:
         return []
 
-    since = _date_filter(period)
-    rows = all_rows if not since else [r for r in all_rows if r[0].snapshot_date >= since]
-    if not rows:
-        return []
-
     result = []
-    for snap, total_pnl, pnl_count in rows:
+    for snap, total_pnl, pnl_count in all_rows:
         market_value = float(snap.total_value)
 
         if pnl_count and total_pnl is not None:
@@ -92,7 +99,7 @@ def return_history(
                 continue
 
         # Fallback: % change vs first ever snapshot (no P&L data available)
-        base = float(all_rows[0][0].total_value)
+        base = float(first_row[0].total_value)
         if base:
             pct = round((market_value - base) / base * 100, 4)
             result.append(ReturnPoint(

@@ -35,8 +35,10 @@
   body {
     min-height: 100vh;
     color: var(--ink);
-    font-family: "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI",
-      sans-serif;
+    font-family: "Inter", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+    /* Inter stylistic sets: cv02 = open digits, cv03/cv04 = open letters,
+       cv11 = single-storey 'a' — together they produce the cleanest look */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     background:
       radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 30%),
       radial-gradient(circle at 80% 15%, rgba(147, 197, 253, 0.34), transparent 24%),
@@ -221,8 +223,11 @@
 
   .metric-value {
     color: var(--ink-strong);
-    letter-spacing: -0.04em;
-    @apply text-3xl font-semibold sm:text-4xl;
+    /* -0.02em keeps Inter's optical balance; -0.04em was too tight on long $ values */
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "cv02", "cv03";
+    @apply text-[1.95rem] font-semibold leading-none tabular-nums sm:text-[2.2rem];
   }
 
   .field-label {

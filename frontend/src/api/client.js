@@ -2,6 +2,36 @@ import axios from 'axios'
 
 const api = axios.create({ baseURL: '/api/v1' })
 
+// Normalise every error response into a plain Error with a human-readable
+// message so callers never have to inspect raw Axios error shapes.
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err.response?.status
+    const detail = err.response?.data?.detail
+
+    let message
+    if (detail) {
+      message = Array.isArray(detail)
+        ? detail.map((d) => d.msg ?? JSON.stringify(d)).join('; ')
+        : String(detail)
+    } else if (status === 404) {
+      message = 'Resource not found.'
+    } else if (status === 422) {
+      message = 'Invalid request data.'
+    } else if (status >= 500) {
+      message = 'Server error — please try again.'
+    } else {
+      message = err.message ?? 'An unexpected error occurred.'
+    }
+
+    const normalised = new Error(message)
+    normalised.status = status
+    normalised.original = err
+    return Promise.reject(normalised)
+  },
+)
+
 // ── Users ──────────────────────────────────────────────────────────────────
 export const createUser = (data) => api.post('/portfolio/users', data).then(r => r.data)
 export const getUser    = (id)   => api.get(`/portfolio/users/${id}`).then(r => r.data)

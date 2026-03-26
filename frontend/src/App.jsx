@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { createUser } from './api/client'
 import Navbar from './components/layout/Navbar'
@@ -33,31 +33,38 @@ export default function App() {
   const [userReady, setUserReady] = useState(false)
   const [userError, setUserError] = useState('')
 
-  const runBootstrap = async (signal) => {
+  // Keep a ref to the active abort controller so retries can cancel in-flight requests.
+  const bootstrapController = useRef(null)
+
+  const runBootstrap = useCallback(async () => {
+    // Cancel any previous in-flight bootstrap before starting a new one.
+    bootstrapController.current?.abort()
+    const controller = new AbortController()
+    bootstrapController.current = controller
+
     setUserReady(false)
     setUserError('')
     try {
       const user = await createUser({ email: DEMO_EMAIL, name: 'Demo User' })
-      if (signal?.aborted) return
+      if (controller.signal.aborted) return
       setUserId(user.id)
     } catch (error) {
-      if (signal?.aborted) return
+      if (controller.signal.aborted) return
       console.error(error)
       setUserError('Unable to prepare the demo workspace. Check the backend and try again.')
     } finally {
-      if (!signal?.aborted) setUserReady(true)
+      if (!controller.signal.aborted) setUserReady(true)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    const controller = new AbortController()
-    runBootstrap(controller.signal)
-    return () => controller.abort()
-  }, [])
+    runBootstrap()
+    return () => bootstrapController.current?.abort()
+  }, [runBootstrap])
 
   const activeTab = TABS.find((item) => item.id === tab)
   const handleOpenUpload = () => setShowUpload(true)
-  const retryUserBootstrap = () => runBootstrap()
+  const retryUserBootstrap = runBootstrap
 
   return (
     <div className="app-shell">
